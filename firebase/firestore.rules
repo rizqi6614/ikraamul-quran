@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        getUserData().role == 'admin' ||
+        request.auth.token.admin == true
+      );
+    }
+    
+    function isApprovedMember() {
+      return isAuthenticated() && getUserData().membershipStatus == 'approved';
+    }
+
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      // Anyone authenticated can read user basic profiles
+      allow read: if isAuthenticated();
+      
+      // User can create their own profile upon register (with role 'member' and status 'pending')
+      allow create: if isOwner(userId) &&
+        request.resource.data.role == 'member' &&
+        request.resource.data.membershipStatus in ['pending', 'approved'];
+      
+      // User can update only safe fields (photo, phone), but CANNOT change role or status!
+      allow update: if (isOwner(userId) &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.membershipStatus == resource.data.membershipStatus) || isAdmin();
+      
+      // Only admin can delete user records
+      allow delete: if isAdmin();
+    }
+
+    // --- MEMORIZATION SUBMISSIONS ---
+    match /memorizationSubmissions/{submissionId} {
+      // Members can read their own submissions, admin can read all
+      allow read: if isAuthenticated() && (resource.data.memberId == request.auth.uid || isAdmin());
+      
+      // Approved member can create a submission
+      allow create: if isApprovedMember() &&
+        request.resource.data.memberId == request.auth.uid &&
+        request.resource.data.status == 'menunggu';
+      
+      // Only admin can review, score, and change status
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- MEMORIZATION PROGRESS ---
+    match /memorizationProgress/{progressId} {
+      allow read: if isAuthenticated() && (resource.data.memberId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // --- QURAN BOOKMARKS & HISTORY ---
+    match /quranBookmarks/{bookmarkId} {
+      allow read, write: if isAuthenticated() && (resource.data.memberId == request.auth.uid || request.resource.data.memberId == request.auth.uid);
+    }
+
+    match /quranReadingHistory/{historyId} {
+      allow read, write: if isAuthenticated() && (resource.data.memberId == request.auth.uid || request.resource.data.memberId == request.auth.uid);
+    }
+
+    // --- ACTIVITIES ---
+    match /activities/{activityId} {
+      allow read: if true; // Public view
+      allow write: if isAdmin();
+    }
+
+    // --- ACTIVITY REGISTRATIONS ---
+    match /activityRegistrations/{regId} {
+      allow read: if isAuthenticated() && (resource.data.memberId == request.auth.uid || isAdmin());
+      allow create: if isApprovedMember() && request.resource.data.memberId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.memberId == request.auth.uid || isAdmin());
+    }
+
+    // --- ATTENDANCE SESSIONS ---
+    match /attendanceSessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // --- ATTENDANCE RECORDS ---
+    match /attendanceRecords/{recordId} {
+      allow read: if isAuthenticated() && (resource.data.memberId == request.auth.uid || isAdmin());
+      // Self check-in allowed if authenticated and session is valid
+      allow create: if isApprovedMember() && request.resource.data.memberId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // --- DONATION PROGRAMS ---
+    match /donationPrograms/{programId} {
+      allow read: if true; // Public donation programs
+      allow write: if isAdmin();
+    }
+
+    // --- DONATIONS (INFAQ & SHADAQAH) ---
+    match /donations/{donationId} {
+      // Member can read their own donations, admin can read all
+      allow read: if isAuthenticated() && (resource.data.memberId == request.auth.uid || isAdmin());
+      
+      // Member can submit donation with status 'menunggu_verifikasi'
+      allow create: if isAuthenticated() &&
+        request.resource.data.memberId == request.auth.uid &&
+        request.resource.data.status in ['menunggu_pembayaran', 'menunggu_verifikasi'];
+      
+      // Only admin can verify donation status
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- FUND DISBURSEMENTS (PENYALURAN DANA) ---
+    match /fundDisbursements/{disbId} {
+      allow read: if true; // Transparent public report
+      allow write: if isAdmin();
+    }
+
+    // --- ANNOUNCEMENTS ---
+    match /announcements/{annId} {
+      allow read: if true; // Public announcements
+      allow write: if isAdmin();
+    }
+
+    // --- SCHEDULES ---
+    match /schedules/{scheduleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- NOTIFICATIONS ---
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow create, delete: if isAdmin();
+    }
+
+    // --- APP SETTINGS ---
+    match /appSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

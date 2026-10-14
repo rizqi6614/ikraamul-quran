@@ -1,0 +1,80 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppStoreProvider } from '@/services/store/appStore';
+import { AppLayout } from '@/components/layout/AppLayout';
+
+// Auth Pages
+import { SplashScreen } from '@/pages/auth/SplashScreen';
+import { LoginPage } from '@/pages/auth/LoginPage';
+import { RegisterPage } from '@/pages/auth/RegisterPage';
+
+// Member Pages
+import { DashboardPage } from '@/pages/member/DashboardPage';
+import { QuranListPage } from '@/pages/quran/QuranListPage';
+import { QuranDetailPage } from '@/pages/quran/QuranDetailPage';
+import { SetorHafalanPage } from '@/pages/tahfidz/SetorHafalanPage';
+import { TalaqqiPage } from '@/pages/tahfidz/TalaqqiPage';
+import { ProgressHafalanPage } from '@/pages/tahfidz/ProgressHafalanPage';
+import { DoaDzikirPage } from '@/pages/member/DoaDzikirPage';
+import { InfaqPage } from '@/pages/donations/InfaqPage';
+import { KegiatanPage } from '@/pages/activities/KegiatanPage';
+import { AbsensiPage } from '@/pages/attendance/AbsensiPage';
+import { ProfilePage } from '@/pages/member/ProfilePage';
+
+// Admin Pages
+import { AdminDashboard } from '@/pages/admin/AdminDashboard';
+import { AdminMembersPage } from '@/pages/admin/AdminMembersPage';
+import { AdminSubmissionsPage } from '@/pages/admin/AdminSubmissionsPage';
+import { AdminActivitiesPage } from '@/pages/admin/AdminActivitiesPage';
+import { AdminAttendancePage } from '@/pages/admin/AdminAttendancePage';
+import { AdminDonationsPage } from '@/pages/admin/AdminDonationsPage';
+import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage';
+import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+
+export function App() {
+  return (
+    <AppStoreProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Splash & Auth Routes */}
+          <Route path="/splash" element={<SplashScreen />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          {/* Main App Layout */}
+          <Route element={<AppLayout />}>
+            {/* Member Routes */}
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/quran" element={<QuranListPage />} />
+            <Route path="/quran/:surahId" element={<QuranDetailPage />} />
+            <Route path="/setor-hafalan" element={<SetorHafalanPage />} />
+            <Route path="/talaqqi" element={<TalaqqiPage />} />
+            <Route path="/progres-hafalan" element={<ProgressHafalanPage />} />
+            <Route path="/doa-dzikir" element={<DoaDzikirPage />} />
+            <Route path="/infaq" element={<InfaqPage />} />
+            <Route path="/kegiatan" element={<KegiatanPage />} />
+            <Route path="/absensi" element={<AbsensiPage />} />
+            <Route path="/profil" element={<ProfilePage />} />
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/anggota" element={<AdminMembersPage />} />
+            <Route path="/admin/setoran" element={<AdminSubmissionsPage />} />
+            <Route path="/admin/kegiatan" element={<AdminActivitiesPage />} />
+            <Route path="/admin/absensi" element={<AdminAttendancePage />} />
+            <Route path="/admin/infaq" element={<AdminDonationsPage />} />
+            <Route path="/admin/pengumuman" element={<AdminAnnouncementsPage />} />
+            <Route path="/admin/laporan" element={<AdminReportsPage />} />
+            <Route path="/admin/pengaturan" element={<AdminSettingsPage />} />
+          </Route>
+
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AppStoreProvider>
+  );
+}
+
+export default App;

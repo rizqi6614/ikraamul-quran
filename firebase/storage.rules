@@ -1,0 +1,43 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < 5 * 1024 * 1024; // Max 5MB
+    }
+
+    function isAudioFile() {
+      return request.resource.contentType.matches('audio/.*')
+        && request.resource.size < 20 * 1024 * 1024; // Max 20MB
+    }
+
+    // Profile photos
+    match /profiles/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId && isImageFile();
+    }
+
+    // Activity posters (admin only)
+    match /posters/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImageFile();
+    }
+
+    // Donation transfer receipts
+    match /receipts/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId && isImageFile();
+    }
+
+    // Murojaah audio recordings
+    match /recordings/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId && isAudioFile();
+    }
+  }
+}
