@@ -10,15 +10,25 @@ import {
   Share2,
   X,
   Sparkles,
-  Info
+  Info,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { formatDateTime, formatShortDate } from '@/utils/formatters';
+import { Link } from 'react-router-dom';
 
 export const KegiatanPage: React.FC = () => {
-  const { activities, currentUser } = useAppStore();
+  const { activities, currentUser, isAdmin, deleteActivity } = useAppStore();
   const [activeTab, setActiveTab] = useState<'mendatang' | 'selesai'>('mendatang');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
+
+  const handleDelete = async (actId: string, actTitle: string) => {
+    if (confirm(`Hapus kegiatan "${actTitle}"?`)) {
+      await deleteActivity(actId);
+      alert('Kegiatan berhasil dihapus dari jadwal & database.');
+    }
+  };
 
   const filteredActivities = activities.filter((act) => {
     if (activeTab === 'mendatang') {
@@ -44,7 +54,7 @@ export const KegiatanPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             Jadwal & Informasi Kegiatan
@@ -53,8 +63,19 @@ export const KegiatanPage: React.FC = () => {
             Agenda kajian, bimbingan tahfidz, seminar, dan kegiatan dakwah UNINUS
           </p>
         </div>
-        <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center">
-          <Calendar className="w-5 h-5" />
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              to="/admin/kegiatan"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah / Kelola</span>
+            </Link>
+          )}
+          <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
+            <Calendar className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
@@ -137,6 +158,15 @@ export const KegiatanPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDelete(act.id, act.title)}
+                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                      title="Hapus Kegiatan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => setSelectedActivity(act)}
                     className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition"

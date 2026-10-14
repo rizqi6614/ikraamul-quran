@@ -128,7 +128,7 @@ export const QuranDetailPage: React.FC = () => {
 
   const handleCopyAyah = (ayah: AyahItem) => {
     if (!surah) return;
-    const text = `${ayah.arabic}\n\n"${ayah.translation}"\n(QS. ${surah.name}: ${ayah.number})`;
+    const text = `${ayah.arabic}\n\n${ayah.latin ? ayah.latin + '\n\n' : ''}"${ayah.translation}"\n(QS. ${surah.name}: ${ayah.number})`;
     navigator.clipboard.writeText(text);
     setCopiedAyah(ayah.number);
     setTimeout(() => setCopiedAyah(null), 2500);
@@ -362,7 +362,7 @@ export const QuranDetailPage: React.FC = () => {
               </div>
 
               {/* Arabic Text */}
-              <div className="py-2">
+              <div className="py-2 text-right">
                 <p
                   className="font-quran font-bold text-slate-900 leading-loose"
                   style={{ fontSize: `${arabicFontSize}px` }}
@@ -371,8 +371,15 @@ export const QuranDetailPage: React.FC = () => {
                 </p>
               </div>
 
+              {/* Latin Transliteration (Persis NU Online) */}
+              {ayah.latin && (
+                <div className="pt-2 pb-1 text-emerald-800 text-xs sm:text-sm font-medium italic">
+                  {ayah.latin}
+                </div>
+              )}
+
               {/* Indonesian Translation */}
-              <div className="pt-3 border-t border-slate-100/80">
+              <div className="pt-2 border-t border-slate-100/80">
                 <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
                   {ayah.translation}
                 </p>

@@ -12,7 +12,8 @@ import {
   Building,
   TrendingDown,
   TrendingUp,
-  Receipt
+  Receipt,
+  Trash2
 } from 'lucide-react';
 import { formatRupiah, formatDateTime } from '@/utils/formatters';
 
@@ -22,12 +23,28 @@ export const AdminDonationsPage: React.FC = () => {
     donationPrograms,
     disbursements,
     verifyDonation,
+    deleteDonation,
     createDonationProgram,
+    deleteDonationProgram,
     createDisbursement
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'transaksi' | 'program' | 'penyaluran'>('transaksi');
   const [selectedProof, setSelectedProof] = useState<Donation | null>(null);
+
+  const handleDeleteProgram = async (id: string, title: string) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus program "${title}"?`)) {
+      await deleteDonationProgram(id);
+      alert('Program berhasil dihapus.');
+    }
+  };
+
+  const handleDeleteDonation = async (id: string) => {
+    if (confirm('Hapus catatan donasi ini?')) {
+      await deleteDonation(id);
+      alert('Catatan donasi berhasil dihapus.');
+    }
+  };
   const [showProgramModal, setShowProgramModal] = useState<boolean>(false);
   const [showDisburseModal, setShowDisburseModal] = useState<boolean>(false);
 
@@ -230,6 +247,14 @@ export const AdminDonationsPage: React.FC = () => {
                     {don.status.toUpperCase()}
                   </span>
                 )}
+
+                <button
+                  onClick={() => handleDeleteDonation(don.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                  title="Hapus Catatan Donasi"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}
@@ -242,20 +267,31 @@ export const AdminDonationsPage: React.FC = () => {
           {donationPrograms.map((p) => (
             <div
               key={p.id}
-              className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-2xs space-y-3"
+              className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-2xs space-y-3 flex flex-col justify-between"
             >
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  {p.category}
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">{p.status}</span>
+              <div>
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    {p.category}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">{p.status}</span>
+                </div>
+                <h4 className="font-bold text-xs text-slate-900 mt-2">{p.title}</h4>
+                <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">{p.description}</p>
               </div>
-              <h4 className="font-bold text-xs text-slate-900">{p.title}</h4>
-              <p className="text-[11px] text-slate-500 line-clamp-2">{p.description}</p>
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-[11px] text-slate-500">Terkumpul:</p>
-                <p className="font-extrabold text-sm text-emerald-800">{formatRupiah(p.collectedAmount)}</p>
-                <p className="text-[10px] text-slate-400">Target: {formatRupiah(p.targetAmount)}</p>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] text-slate-500">Terkumpul:</p>
+                  <p className="font-extrabold text-sm text-emerald-800">{formatRupiah(p.collectedAmount)}</p>
+                  <p className="text-[10px] text-slate-400">Target: {formatRupiah(p.targetAmount)}</p>
+                </div>
+                <button
+                  onClick={() => handleDeleteProgram(p.id, p.title)}
+                  className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                  title="Hapus Program Infaq"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}

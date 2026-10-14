@@ -334,7 +334,7 @@ export async function getSurahDetail(surahNumber: number): Promise<SurahDetail> 
   }
 
   try {
-    const res = await fetch(`https://equran.nos.jkt-1.neo.id/api/v2/surat/${surahNumber}`);
+    const res = await fetch(`https://equran.id/api/v2/surat/${surahNumber}`);
     if (!res.ok) throw new Error('Network response not ok');
     const json = await res.json();
     const data = json.data;
@@ -348,7 +348,7 @@ export async function getSurahDetail(surahNumber: number): Promise<SurahDetail> 
       translation: data.arti,
       revelation: data.tempatTurun === 'Mekah' ? 'Makkiyah' : 'Madaniyah',
       numberOfAyahs: data.jumlahAyat,
-      audioFull: data.audioFull ? Object.values(data.audioFull)[0] as string : surahMeta?.audioFull,
+      audioFull: data.audioFull ? ((data.audioFull['05'] || Object.values(data.audioFull)[0]) as string) : surahMeta?.audioFull,
       bismillah: surahNumber !== 9 ? {
         arabic: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
         translation: 'Dengan nama Allah Yang Maha Pengasih, Maha Penyayang'
@@ -356,8 +356,9 @@ export async function getSurahDetail(surahNumber: number): Promise<SurahDetail> 
       ayahs: data.ayat.map((item: any) => ({
         number: item.nomorAyat,
         arabic: item.teksArab,
+        latin: item.teksLatin,
         translation: item.teksIndonesia,
-        audio: item.audio ? Object.values(item.audio)[0] as string : undefined
+        audio: item.audio ? ((item.audio['05'] || Object.values(item.audio)[0]) as string) : undefined
       }))
     };
 

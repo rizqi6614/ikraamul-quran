@@ -40,7 +40,7 @@ export const AdminSidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-200 min-h-[calc(100vh-4rem)] p-4 flex flex-col shrink-0">
+    <aside className="hidden md:flex w-64 bg-slate-900 text-slate-200 min-h-[calc(100vh-4rem)] p-4 flex-col shrink-0">
       {/* Admin header */}
       <div className="mb-6 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">

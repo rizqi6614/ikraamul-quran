@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/services/store/appStore';
 import {
@@ -17,9 +17,33 @@ import {
   Megaphone,
   ArrowUpRight,
   ShieldAlert,
-  Play
+  Play,
+  MapPin
 } from 'lucide-react';
 import { formatRupiah, formatShortDate, getHijriDate } from '@/utils/formatters';
+
+interface PrayerTimes {
+  imsak: string;
+  subuh: string;
+  terbit: string;
+  dhuha: string;
+  dzuhur: string;
+  ashar: string;
+  maghrib: string;
+  isya: string;
+  tanggal?: string;
+}
+
+const defaultPrayerTimes: PrayerTimes = {
+  imsak: '04:03',
+  subuh: '04:13',
+  terbit: '05:21',
+  dhuha: '05:53',
+  dzuhur: '11:39',
+  ashar: '14:42',
+  maghrib: '17:50',
+  isya: '18:56'
+};
 
 export const DashboardPage: React.FC = () => {
   const {
@@ -34,6 +58,65 @@ export const DashboardPage: React.FC = () => {
   } = useAppStore();
 
   const navigate = useNavigate();
+
+  const [prayerTimes, setPrayerTimes] = useState<PrayerTimes>(defaultPrayerTimes);
+
+  useEffect(() => {
+    const fetchPrayerTimes = async () => {
+      try {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const cacheKey = `prayer_times_1219_${y}_${m}_${d}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          setPrayerTimes(JSON.parse(cached));
+          return;
+        }
+        const res = await fetch(`https://api.myquran.com/v2/sholat/jadwal/1219/${y}/${m}/${d}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.data?.jadwal) {
+            setPrayerTimes(json.data.jadwal);
+            localStorage.setItem(cacheKey, JSON.stringify(json.data.jadwal));
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch prayer times, using default', e);
+      }
+    };
+    fetchPrayerTimes();
+  }, []);
+
+  // Compute upcoming prayer
+  const getCurrentPrayer = () => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const toMinutes = (timeStr: string) => {
+      if (!timeStr) return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const prayers = [
+      { name: 'Subuh', time: prayerTimes.subuh },
+      { name: 'Dzuhur', time: prayerTimes.dzuhur },
+      { name: 'Ashar', time: prayerTimes.ashar },
+      { name: 'Maghrib', time: prayerTimes.maghrib },
+      { name: 'Isya', time: prayerTimes.isya }
+    ];
+
+    for (const p of prayers) {
+      if (currentMinutes < toMinutes(p.time)) {
+        return p;
+      }
+    }
+    return { name: 'Subuh', time: prayerTimes.subuh };
+  };
+
+  const activeUpcoming = getCurrentPrayer();
 
   const quickMenus = [
     {
@@ -176,6 +259,60 @@ export const DashboardPage: React.FC = () => {
             <QrCode className="w-4 h-4" />
             <span className="hidden sm:inline">Absen</span>
           </Link>
+        </div>
+      </div>
+
+      {/* Jadwal Sholat Kecil Berdasarkan NU Online / Kemenag RI */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 border border-emerald-100/90 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-emerald-700" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-xs sm:text-sm font-bold text-slate-800">Jadwal Sholat Hari Ini</h3>
+                <span className="text-[9px] font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full uppercase">
+                  NU Online
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-emerald-600" />
+                <span>Kota Bandung (UNINUS)</span>
+              </p>
+            </div>
+          </div>
+          <div className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200/80">
+            Sholat Berikutnya: <strong className="font-bold text-emerald-950">{activeUpcoming.name} ({activeUpcoming.time})</strong>
+          </div>
+        </div>
+
+        {/* Mini Grid Times */}
+        <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 sm:gap-2 text-center">
+          <div className="hidden sm:block p-2 rounded-xl bg-slate-50 border border-slate-100">
+            <p className="text-[10px] text-slate-500 font-medium">Imsak</p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">{prayerTimes.imsak}</p>
+          </div>
+          <div className={`p-2 rounded-xl transition ${activeUpcoming.name === 'Subuh' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'bg-slate-50 border border-slate-100 text-slate-700'}`}>
+            <p className={`text-[10px] ${activeUpcoming.name === 'Subuh' ? 'text-emerald-100' : 'text-slate-500'} font-medium`}>Subuh</p>
+            <p className="text-xs font-bold mt-0.5">{prayerTimes.subuh}</p>
+          </div>
+          <div className={`p-2 rounded-xl transition ${activeUpcoming.name === 'Dzuhur' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'bg-slate-50 border border-slate-100 text-slate-700'}`}>
+            <p className={`text-[10px] ${activeUpcoming.name === 'Dzuhur' ? 'text-emerald-100' : 'text-slate-500'} font-medium`}>Dzuhur</p>
+            <p className="text-xs font-bold mt-0.5">{prayerTimes.dzuhur}</p>
+          </div>
+          <div className={`p-2 rounded-xl transition ${activeUpcoming.name === 'Ashar' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'bg-slate-50 border border-slate-100 text-slate-700'}`}>
+            <p className={`text-[10px] ${activeUpcoming.name === 'Ashar' ? 'text-emerald-100' : 'text-slate-500'} font-medium`}>Ashar</p>
+            <p className="text-xs font-bold mt-0.5">{prayerTimes.ashar}</p>
+          </div>
+          <div className={`p-2 rounded-xl transition ${activeUpcoming.name === 'Maghrib' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'bg-slate-50 border border-slate-100 text-slate-700'}`}>
+            <p className={`text-[10px] ${activeUpcoming.name === 'Maghrib' ? 'text-emerald-100' : 'text-slate-500'} font-medium`}>Maghrib</p>
+            <p className="text-xs font-bold mt-0.5">{prayerTimes.maghrib}</p>
+          </div>
+          <div className={`p-2 rounded-xl transition ${activeUpcoming.name === 'Isya' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'bg-slate-50 border border-slate-100 text-slate-700'}`}>
+            <p className={`text-[10px] ${activeUpcoming.name === 'Isya' ? 'text-emerald-100' : 'text-slate-500'} font-medium`}>Isya</p>
+            <p className="text-xs font-bold mt-0.5">{prayerTimes.isya}</p>
+          </div>
         </div>
       </div>
 

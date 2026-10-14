@@ -31,6 +31,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot
 } from 'firebase/firestore';
 
@@ -86,7 +87,9 @@ interface AppStoreContextType {
   disbursements: FundDisbursement[];
   createDonation: (data: Omit<Donation, 'id' | 'status' | 'createdAt' | 'memberName'>) => Promise<void>;
   verifyDonation: (donationId: string, approved: boolean) => Promise<void>;
+  deleteDonation: (id: string) => Promise<void>;
   createDonationProgram: (data: Omit<DonationProgram, 'id' | 'collectedAmount' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  deleteDonationProgram: (id: string) => Promise<void>;
   createDisbursement: (data: Omit<FundDisbursement, 'id' | 'createdAt'>) => Promise<void>;
 
   // Announcements & Schedules
@@ -298,11 +301,25 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
       (err) => console.warn('Firestore donations listener note:', err.message)
     );
 
+    // Listen to donationPrograms collection
+    const unsubPrograms = onSnapshot(
+      collection(db, 'donationPrograms'),
+      (snap) => {
+        if (!snap.empty) {
+          const pList: DonationProgram[] = [];
+          snap.forEach((d) => pList.push(d.data() as DonationProgram));
+          setDonationPrograms(pList);
+        }
+      },
+      (err) => console.warn('Firestore donationPrograms listener note:', err.message)
+    );
+
     return () => {
       unsubUsers();
       unsubSubs();
       unsubActs();
       unsubDonations();
+      unsubPrograms();
     };
   }, [isFirebaseLive]);
 
@@ -746,6 +763,14 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const deleteActivity = async (id: string) => {
     setActivities((prev) => prev.filter((a) => a.id !== id));
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'activities', id));
+        console.log('Activity deleted from Firestore:', id);
+      } catch (e) {
+        console.warn('Firestore delete activity error:', e);
+      }
+    }
   };
 
   // Attendance Sessions
@@ -903,6 +928,18 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
+  const deleteDonation = async (id: string) => {
+    setDonations((prev) => prev.filter((d) => d.id !== id));
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'donations', id));
+        console.log('Donation deleted from Firestore:', id);
+      } catch (e) {
+        console.warn('Firestore delete donation error:', e);
+      }
+    }
+  };
+
   const createDonationProgram = async (
     data: Omit<DonationProgram, 'id' | 'collectedAmount' | 'createdAt' | 'updatedAt'>
   ) => {
@@ -914,6 +951,27 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
       updatedAt: new Date().toISOString()
     };
     setDonationPrograms((prev) => [newProgram, ...prev]);
+
+    if (db) {
+      try {
+        await setDoc(doc(db, 'donationPrograms', newProgram.id), newProgram);
+        console.log('Donation program saved to Firestore:', newProgram.id);
+      } catch (e) {
+        console.warn('Firestore donation program save error:', e);
+      }
+    }
+  };
+
+  const deleteDonationProgram = async (id: string) => {
+    setDonationPrograms((prev) => prev.filter((p) => p.id !== id));
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'donationPrograms', id));
+        console.log('Donation program deleted from Firestore:', id);
+      } catch (e) {
+        console.warn('Firestore delete donation program error:', e);
+      }
+    }
   };
 
   const createDisbursement = async (data: Omit<FundDisbursement, 'id' | 'createdAt'>) => {
@@ -1006,7 +1064,9 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
         disbursements,
         createDonation,
         verifyDonation,
+        deleteDonation,
         createDonationProgram,
+        deleteDonationProgram,
         createDisbursement,
         announcements,
         createAnnouncement,

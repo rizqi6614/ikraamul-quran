@@ -85,9 +85,10 @@ export const AdminActivitiesPage: React.FC = () => {
     setShowModal(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Hapus kegiatan ini?')) {
+  const handleDelete = async (id: string, title?: string) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus kegiatan "${title || 'ini'}"?`)) {
       await deleteActivity(id);
+      alert('Kegiatan berhasil dihapus dari database.');
     }
   };
 
@@ -156,8 +157,8 @@ export const AdminActivitiesPage: React.FC = () => {
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
-                onClick={() => handleDelete(act.id)}
-                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                onClick={() => handleDelete(act.id, act.title)}
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                 title="Hapus kegiatan"
               >
                 <Trash2 className="w-4 h-4" />

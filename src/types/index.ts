@@ -266,6 +266,7 @@ export interface AyahItem {
   number: number;        // Nomor ayat dalam surah
   arabic: string;        // Text Arab lengkap
   translation: string;   // Terjemahan Bahasa Indonesia Kemenag
+  latin?: string;        // Transliterasi Latin persis seperti di NU Online
   audio?: string;        // Audio link murattal per ayat
 }
 
