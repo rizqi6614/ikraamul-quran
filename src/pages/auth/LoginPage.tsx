@@ -31,7 +31,11 @@ export const LoginPage: React.FC = () => {
     setLoading(false);
 
     if (result.success) {
-      navigate('/');
+      if (result.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } else {
       setErrorMsg(result.message || 'Login gagal. Periksa kembali email dan password Anda.');
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -11,12 +11,21 @@ import {
   HeartHandshake,
   BarChart3,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 import { useAppStore } from '@/services/store/appStore';
 
 export const AdminSidebar: React.FC = () => {
-  const { currentUser } = useAppStore();
+  const { currentUser, logout } = useAppStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    if (confirm('Apakah Anda yakin ingin keluar dari panel admin?')) {
+      await logout();
+      navigate('/login');
+    }
+  };
 
   const adminNav = [
     { to: '/admin', label: 'Dashboard Ringkasan', icon: LayoutDashboard, end: true },
@@ -65,8 +74,8 @@ export const AdminSidebar: React.FC = () => {
         })}
       </div>
 
-      {/* Return to member view */}
-      <div className="pt-4 border-t border-slate-800 mt-4">
+      {/* Return to member view & Logout */}
+      <div className="pt-4 border-t border-slate-800 mt-4 space-y-2">
         <Link
           to="/"
           className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium transition"
@@ -74,6 +83,14 @@ export const AdminSidebar: React.FC = () => {
           <ArrowLeft className="w-4 h-4 text-emerald-400" />
           <span>Kembali ke Beranda Anggota</span>
         </Link>
+
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 p-2.5 rounded-xl text-rose-400 hover:bg-rose-950/40 text-xs font-medium transition cursor-pointer"
+        >
+          <LogOut className="w-4 h-4 text-rose-400" />
+          <span>Keluar Akun Admin</span>
+        </button>
       </div>
     </aside>
   );

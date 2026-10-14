@@ -1,6 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppStoreProvider } from '@/services/store/appStore';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AppStoreProvider, useAppStore } from '@/services/store/appStore';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 // Auth Pages
@@ -32,18 +32,59 @@ import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage';
 import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
 
+// Route Guard: Redirects to /login if not logged in
+function AuthGuard({ children }: { children: React.ReactElement }) {
+  const { isLoggedIn } = useAppStore();
+  const location = useLocation();
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return children;
+}
+
+// Public Route Guard: If already logged in, redirect to home / admin
+function PublicAuthRoute({ children }: { children: React.ReactElement }) {
+  const { isLoggedIn, isAdmin } = useAppStore();
+
+  if (isLoggedIn) {
+    return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
+  }
+  return children;
+}
+
 export function App() {
   return (
     <AppStoreProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Splash & Auth Routes */}
+          {/* Public Auth Routes (First view when unauthenticated is /login) */}
+          <Route
+            path="/login"
+            element={
+              <PublicAuthRoute>
+                <LoginPage />
+              </PublicAuthRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicAuthRoute>
+                <RegisterPage />
+              </PublicAuthRoute>
+            }
+          />
           <Route path="/splash" element={<SplashScreen />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
 
-          {/* Main App Layout */}
-          <Route element={<AppLayout />}>
+          {/* Protected Main App Layout (Must be authenticated to view) */}
+          <Route
+            element={
+              <AuthGuard>
+                <AppLayout />
+              </AuthGuard>
+            }
+          >
             {/* Member Routes */}
             <Route path="/" element={<DashboardPage />} />
             <Route path="/quran" element={<QuranListPage />} />
@@ -69,7 +110,7 @@ export function App() {
             <Route path="/admin/pengaturan" element={<AdminSettingsPage />} />
           </Route>
 
-          {/* Catch-all redirect */}
+          {/* Catch-all redirect to root (which redirects to /login if not authenticated) */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
