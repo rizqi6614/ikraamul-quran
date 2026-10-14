@@ -13,13 +13,14 @@ import {
   User,
   Star,
   Info,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { formatShortDate, formatDateTime } from '@/utils/formatters';
 import { MemorizationSubmission, SubmissionType } from '@/types';
 
 export const SetorHafalanPage: React.FC = () => {
-  const { currentUser, memberSubmissions, submitMemorization, allUsers } = useAppStore();
+  const { currentUser, memberSubmissions, submitMemorization, deleteSubmission, allUsers } = useAppStore();
 
   const [selectedSurahNumber, setSelectedSurahNumber] = useState<number>(2); // Default Al-Baqarah
   const [startAyah, setStartAyah] = useState<number>(1);
@@ -322,8 +323,22 @@ export const SetorHafalanPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {getStatusBadge(sub.status)}
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (confirm(`Hapus data setoran Surah ${sub.surahName} (Ayat ${sub.startAyah}-${sub.endAyah})?`)) {
+                        await deleteSubmission(sub.id);
+                        alert('Setoran berhasil dihapus.');
+                      }
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                    title="Hapus setoran"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                   <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 transition" />
                 </div>
               </div>
@@ -407,12 +422,33 @@ export const SetorHafalanPage: React.FC = () => {
               )}
             </div>
 
-            <button
-              onClick={() => setSelectedDetail(null)}
-              className="w-full mt-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition"
-            >
-              Tutup
-            </button>
+            <div className="flex gap-2 mt-5">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (
+                    confirm(
+                      `Apakah Anda yakin ingin menghapus data setoran Surah ${selectedDetail.surahName} (Ayat ${selectedDetail.startAyah}-${selectedDetail.endAyah})?\nData akan dihapus secara permanen.`
+                    )
+                  ) {
+                    await deleteSubmission(selectedDetail.id);
+                    setSelectedDetail(null);
+                    alert('Setoran hafalan berhasil dihapus.');
+                  }
+                }}
+                className="py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Hapus Setoran</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDetail(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -48,6 +48,7 @@ interface AppStoreContextType {
   updateUserProfile: (uid: string, updates: Partial<UserProfile>) => Promise<void>;
   approveMember: (uid: string) => void;
   rejectMember: (uid: string) => void;
+  deleteMember: (uid: string) => Promise<void>;
 
   // Memorization
   submissions: MemorizationSubmission[];
@@ -60,6 +61,7 @@ interface AppStoreContextType {
     scores: { fluency: number; tajwid: number; makhraj: number },
     feedback: string
   ) => Promise<void>;
+  deleteSubmission: (id: string) => Promise<void>;
 
   // Quran Bookmark & History
   bookmarks: QuranBookmark[];
@@ -77,6 +79,7 @@ interface AppStoreContextType {
   memberAttendanceRecords: AttendanceRecord[];
   createAttendanceSession: (activityId: string, activityTitle: string, durationMinutes: number) => Promise<AttendanceSession>;
   closeAttendanceSession: (sessionId: string) => Promise<void>;
+  deleteAttendanceSession: (sessionId: string) => Promise<void>;
   recordAttendance: (sessionCode: string, notes?: string) => Promise<{ success: boolean; message: string }>;
   manualMarkAttendance: (sessionId: string, memberId: string, status: 'hadir' | 'izin' | 'sakit' | 'alpa') => Promise<void>;
 
@@ -314,12 +317,42 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
       (err) => console.warn('Firestore donationPrograms listener note:', err.message)
     );
 
+    // Listen to attendanceSessions collection
+    const unsubSessions = onSnapshot(
+      collection(db, 'attendanceSessions'),
+      (snap) => {
+        if (!snap.empty) {
+          const sesList: AttendanceSession[] = [];
+          snap.forEach((d) => sesList.push(d.data() as AttendanceSession));
+          sesList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setAttendanceSessions(sesList);
+        }
+      },
+      (err) => console.warn('Firestore attendanceSessions listener note:', err.message)
+    );
+
+    // Listen to attendanceRecords collection
+    const unsubRecords = onSnapshot(
+      collection(db, 'attendanceRecords'),
+      (snap) => {
+        if (!snap.empty) {
+          const recList: AttendanceRecord[] = [];
+          snap.forEach((d) => recList.push(d.data() as AttendanceRecord));
+          recList.sort((a, b) => new Date(b.checkInAt).getTime() - new Date(a.checkInAt).getTime());
+          setAttendanceRecords(recList);
+        }
+      },
+      (err) => console.warn('Firestore attendanceRecords listener note:', err.message)
+    );
+
     return () => {
       unsubUsers();
       unsubSubs();
       unsubActs();
       unsubDonations();
       unsubPrograms();
+      unsubSessions();
+      unsubRecords();
     };
   }, [isFirebaseLive]);
 
@@ -575,6 +608,18 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     updateUserProfile(uid, { membershipStatus: 'rejected' });
   };
 
+  const deleteMember = async (uid: string) => {
+    setAllUsers((prev) => prev.filter((u) => u.uid !== uid));
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'users', uid));
+        console.log('Member deleted from Firestore:', uid);
+      } catch (e) {
+        console.warn('Firestore delete user error:', e);
+      }
+    }
+  };
+
   // Memorization Submissions
   const submitMemorization = async (
     data: Omit<MemorizationSubmission, 'id' | 'status' | 'submittedAt' | 'memberName' | 'memberNim'>
@@ -692,6 +737,18 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
+  const deleteSubmission = async (id: string) => {
+    setSubmissions((prev) => prev.filter((s) => s.id !== id));
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'memorizationSubmissions', id));
+        console.log('Submission deleted from Firestore:', id);
+      } catch (e) {
+        console.warn('Firestore delete submission error:', e);
+      }
+    }
+  };
+
   // Quran Bookmarks & Last Read
   const toggleBookmark = (surahNumber: number, surahName: string, ayahNumber: number) => {
     if (!currentUser) return;
@@ -797,6 +854,16 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     setAttendanceSessions((prev) => [session, ...prev]);
+
+    if (db) {
+      try {
+        await setDoc(doc(db, 'attendanceSessions', session.id), session);
+        console.log('Attendance session saved to Firestore:', session.id);
+      } catch (e) {
+        console.warn('Firestore session save error:', e);
+      }
+    }
+
     return session;
   };
 
@@ -804,6 +871,25 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     setAttendanceSessions((prev) =>
       prev.map((s) => (s.id === sessionId ? { ...s, status: 'closed' } : s))
     );
+    if (db) {
+      try {
+        await updateDoc(doc(db, 'attendanceSessions', sessionId), { status: 'closed' });
+      } catch (e) {
+        console.warn('Firestore close session error:', e);
+      }
+    }
+  };
+
+  const deleteAttendanceSession = async (sessionId: string) => {
+    setAttendanceSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'attendanceSessions', sessionId));
+        console.log('Attendance session deleted from Firestore:', sessionId);
+      } catch (e) {
+        console.warn('Firestore delete session error:', e);
+      }
+    }
   };
 
   const recordAttendance = async (
@@ -813,17 +899,17 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (!currentUser) return { success: false, message: 'Harap masuk terlebih dahulu.' };
 
     const cleanCode = sessionCode.trim().toUpperCase();
+    // Match by sessionCode or sessionTokenHash
     const session = attendanceSessions.find(
-      (s) => s.sessionCode.toUpperCase() === cleanCode && s.status === 'open'
+      (s) => s.sessionCode.toUpperCase() === cleanCode || s.sessionTokenHash.toUpperCase() === cleanCode
     );
 
     if (!session) {
-      return { success: false, message: 'Kode sesi absensi tidak valid atau telah ditutup.' };
+      return { success: false, message: `Kode sesi "${cleanCode}" tidak ditemukan. Pastikan kode benar.` };
     }
 
-    const now = new Date();
-    if (new Date(session.endAt) < now) {
-      return { success: false, message: 'Masa berlaku sesi absensi ini telah berakhir.' };
+    if (session.status === 'closed') {
+      return { success: false, message: 'Sesi absensi ini telah ditutup oleh pembimbing.' };
     }
 
     const existing = attendanceRecords.find(
@@ -833,6 +919,7 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
       return { success: false, message: 'Anda sudah melakukan absensi untuk sesi kegiatan ini.' };
     }
 
+    const now = new Date();
     const newRecord: AttendanceRecord = {
       id: `rec-${Date.now()}`,
       sessionId: session.id,
@@ -848,7 +935,17 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     setAttendanceRecords((prev) => [newRecord, ...prev]);
-    return { success: true, message: 'Alhamdulillah, absensi Anda berhasil dicatat!' };
+
+    if (db) {
+      try {
+        await setDoc(doc(db, 'attendanceRecords', newRecord.id), newRecord);
+        console.log('Attendance record saved to Firestore:', newRecord.id);
+      } catch (e) {
+        console.warn('Firestore record attendance error:', e);
+      }
+    }
+
+    return { success: true, message: `Alhamdulillah, absensi Anda untuk "${session.activityTitle}" berhasil dicatat!` };
   };
 
   const manualMarkAttendance = async (
@@ -868,6 +965,11 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
       setAttendanceRecords((prev) =>
         prev.map((r) => (r.id === existing.id ? { ...r, attendanceStatus: status } : r))
       );
+      if (db) {
+        try {
+          await updateDoc(doc(db, 'attendanceRecords', existing.id), { attendanceStatus: status });
+        } catch (e) {}
+      }
     } else {
       const rec: AttendanceRecord = {
         id: `rec-${Date.now()}`,
@@ -882,6 +984,11 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
         attendanceStatus: status
       };
       setAttendanceRecords((prev) => [rec, ...prev]);
+      if (db) {
+        try {
+          await setDoc(doc(db, 'attendanceRecords', rec.id), rec);
+        } catch (e) {}
+      }
     }
   };
 
@@ -1038,11 +1145,13 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
         updateUserProfile,
         approveMember,
         rejectMember,
+        deleteMember,
         submissions,
         memberSubmissions,
         progress,
         submitMemorization,
         reviewSubmission,
+        deleteSubmission,
         bookmarks,
         toggleBookmark,
         lastRead,
@@ -1056,6 +1165,7 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
         memberAttendanceRecords,
         createAttendanceSession,
         closeAttendanceSession,
+        deleteAttendanceSession,
         recordAttendance,
         manualMarkAttendance,
         donationPrograms,

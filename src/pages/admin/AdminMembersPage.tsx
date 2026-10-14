@@ -17,7 +17,7 @@ import {
 import { formatShortDate } from '@/utils/formatters';
 
 export const AdminMembersPage: React.FC = () => {
-  const { allUsers, approveMember, rejectMember, updateUserProfile } = useAppStore();
+  const { allUsers, approveMember, rejectMember, updateUserProfile, deleteMember } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
@@ -203,10 +203,28 @@ export const AdminMembersPage: React.FC = () => {
                 {/* Edit Button matching screenshot */}
                 <button
                   onClick={() => setEditingUser(user)}
-                  className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition"
+                  className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                   title="Edit data anggota"
                 >
                   <Edit2 className="w-4 h-4" />
+                </button>
+
+                {/* Delete Member Button */}
+                <button
+                  onClick={async () => {
+                    if (
+                      confirm(
+                        `Apakah Anda yakin ingin menghapus anggota "${user.fullName}" (${user.nim})?\nSemua data keanggotaan ini akan dihapus secara permanen.`
+                      )
+                    ) {
+                      await deleteMember(user.uid);
+                      alert(`Anggota ${user.fullName} berhasil dihapus.`);
+                    }
+                  }}
+                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                  title="Hapus data anggota"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>

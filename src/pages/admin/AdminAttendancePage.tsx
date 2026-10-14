@@ -11,7 +11,8 @@ import {
   XCircle,
   Download,
   AlertCircle,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { formatDateTime, formatShortDate } from '@/utils/formatters';
 
@@ -22,6 +23,7 @@ export const AdminAttendancePage: React.FC = () => {
     attendanceRecords,
     createAttendanceSession,
     closeAttendanceSession,
+    deleteAttendanceSession,
     manualMarkAttendance,
     allUsers
   } = useAppStore();
@@ -190,6 +192,22 @@ export const AdminAttendancePage: React.FC = () => {
                   >
                     {ses.status === 'open' ? 'Buka' : 'Tutup'}
                   </span>
+
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (confirm(`Apakah Anda yakin ingin menghapus sesi absensi "${ses.sessionCode}" (${ses.activityTitle})?`)) {
+                        await deleteAttendanceSession(ses.id);
+                        if (activeSessionForQR === ses.id) setActiveSessionForQR(null);
+                        alert('Sesi absensi berhasil dihapus.');
+                      }
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                    title="Hapus sesi absensi"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/services/store/appStore';
 import {
   QrCode,
@@ -9,9 +9,11 @@ import {
   Hash,
   History,
   X,
-  Sparkles
+  Sparkles,
+  CameraOff,
+  RefreshCw
 } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { formatDateTime, formatShortDate } from '@/utils/formatters';
 import confetti from 'canvas-confetti';
 
@@ -24,42 +26,105 @@ export const AbsensiPage: React.FC = () => {
   } = useAppStore();
 
   const [sessionCodeInput, setSessionCodeInput] = useState<string>('');
-  const [showScanner, setShowScanner] = useState<boolean>(false);
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [cameraLoading, setCameraLoading] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+
   // Active open sessions
   const activeSessions = attendanceSessions.filter((s) => s.status === 'open');
 
-  // Scanner initialization
-  useEffect(() => {
-    let scanner: Html5QrcodeScanner | null = null;
-    if (showScanner) {
-      scanner = new Html5QrcodeScanner(
-        'qr-reader-container',
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
+  const startScanner = async () => {
+    setIsScanning(true);
+    setCameraLoading(true);
+    setCameraError(null);
+    setFeedback(null);
 
-      scanner.render(
-        (decodedText) => {
-          handleProcessCode(decodedText);
-          scanner?.clear();
-          setShowScanner(false);
-        },
-        (error) => {
-          // ignore scan frame errors
+    // Give DOM a frame to render #qr-reader-container
+    setTimeout(async () => {
+      try {
+        const container = document.getElementById('qr-reader-container');
+        if (!container) return;
+
+        // Clean previous instance if any
+        if (html5QrCodeRef.current) {
+          try {
+            if (html5QrCodeRef.current.isScanning) {
+              await html5QrCodeRef.current.stop();
+            }
+            await html5QrCodeRef.current.clear();
+          } catch (e) {}
         }
-      );
-    }
 
+        const scanner = new Html5Qrcode('qr-reader-container');
+        html5QrCodeRef.current = scanner;
+
+        const qrConfig = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        };
+
+        const onScanSuccess = async (decodedText: string) => {
+          if (navigator.vibrate) {
+            try {
+              navigator.vibrate(100);
+            } catch (e) {}
+          }
+          await stopScanner();
+          handleProcessCode(decodedText);
+        };
+
+        // Try environment camera (back camera) first, then fallback to user/default camera
+        try {
+          await scanner.start({ facingMode: 'environment' }, qrConfig, onScanSuccess, () => {});
+        } catch (envErr) {
+          console.warn('Back camera failed, trying user camera...', envErr);
+          await scanner.start({ facingMode: 'user' }, qrConfig, onScanSuccess, () => {});
+        }
+
+        setCameraLoading(false);
+      } catch (err: any) {
+        console.error('Camera startup error:', err);
+        setCameraLoading(false);
+        setIsScanning(false);
+        setCameraError(
+          'Tidak dapat mengaktifkan kamera perangkat. Pastikan Anda telah memberikan izin kamera di browser Anda, atau gunakan kode sesi manual di bawah.'
+        );
+      }
+    }, 150);
+  };
+
+  const stopScanner = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        await html5QrCodeRef.current.clear();
+      } catch (e) {
+        console.warn('Scanner stop note:', e);
+      }
+      html5QrCodeRef.current = null;
+    }
+    setIsScanning(false);
+    setCameraLoading(false);
+  };
+
+  useEffect(() => {
     return () => {
-      if (scanner) {
-        scanner.clear().catch(() => {});
+      if (html5QrCodeRef.current) {
+        try {
+          if (html5QrCodeRef.current.isScanning) {
+            html5QrCodeRef.current.stop().catch(() => {});
+          }
+        } catch (e) {}
       }
     };
-  }, [showScanner]);
+  }, []);
 
   const handleProcessCode = async (code: string) => {
     setLoading(true);
@@ -121,14 +186,35 @@ export const AbsensiPage: React.FC = () => {
       {/* QR Scanner Frame (Matching exact screenshot: frame icon + "Scan QR untuk absen atau pilih manual" + "Absen Sekarang" button) */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-emerald-100 shadow-md text-center space-y-6">
         <div className="max-w-xs mx-auto">
-          {showScanner ? (
+          {cameraError && (
+            <div className="p-3 mb-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs text-left">
+              <p className="font-bold flex items-center gap-1.5 mb-1">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Peringatan Kamera</span>
+              </p>
+              <p className="text-[11px] leading-relaxed">{cameraError}</p>
+            </div>
+          )}
+
+          {isScanning ? (
             <div className="space-y-3">
-              <div id="qr-reader-container" className="rounded-2xl overflow-hidden border" />
+              <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500 bg-black min-h-[260px] flex items-center justify-center">
+                <div id="qr-reader-container" className="w-full h-full" />
+                {cameraLoading && (
+                  <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center text-white text-xs gap-2 z-10">
+                    <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
+                    <span>Membuka kamera perangkat...</span>
+                  </div>
+                )}
+              </div>
+
               <button
-                onClick={() => setShowScanner(false)}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                type="button"
+                onClick={stopScanner}
+                className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Tutup Kamera Pemindai
+                <CameraOff className="w-4 h-4" />
+                <span>Tutup Kamera</span>
               </button>
             </div>
           ) : (
@@ -153,7 +239,8 @@ export const AbsensiPage: React.FC = () => {
 
               {/* Absen Sekarang Button (Matching screenshot) */}
               <button
-                onClick={() => setShowScanner(true)}
+                type="button"
+                onClick={startScanner}
                 className="w-full py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Camera className="w-4 h-4" />

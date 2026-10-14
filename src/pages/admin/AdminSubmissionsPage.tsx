@@ -11,12 +11,13 @@ import {
   Sliders,
   X,
   Star,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { formatDateTime, formatShortDate } from '@/utils/formatters';
 
 export const AdminSubmissionsPage: React.FC = () => {
-  const { submissions, reviewSubmission, currentUser } = useAppStore();
+  const { submissions, reviewSubmission, deleteSubmission, currentUser } = useAppStore();
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'menunggu' | 'diterima' | 'perlu_perbaikan'>('menunggu');
   const [selectedSub, setSelectedSub] = useState<MemorizationSubmission | null>(null);
@@ -139,6 +140,23 @@ export const AdminSubmissionsPage: React.FC = () => {
               >
                 <Award className="w-4 h-4" />
                 <span>{sub.status === 'menunggu' ? 'Periksa & Nilai' : 'Ubah Penilaian'}</span>
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (
+                    confirm(
+                      `Apakah Anda yakin ingin menghapus setoran hafalan "${sub.surahName}" (Ayat ${sub.startAyah}-${sub.endAyah}) milik ${sub.memberName}?\nData setoran ini akan dihapus secara permanen.`
+                    )
+                  ) {
+                    await deleteSubmission(sub.id);
+                    alert('Setoran hafalan berhasil dihapus.');
+                  }
+                }}
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                title="Hapus setoran hafalan"
+              >
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>
