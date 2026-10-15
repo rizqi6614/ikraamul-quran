@@ -15,6 +15,7 @@ import {
   Filter
 } from 'lucide-react';
 import { formatShortDate } from '@/utils/formatters';
+import { PRODI_LIST, DEFAULT_PRODI } from '@/constants/prodi';
 
 export const AdminMembersPage: React.FC = () => {
   const { allUsers, approveMember, rejectMember, updateUserProfile, deleteMember } = useAppStore();
@@ -30,7 +31,7 @@ export const AdminMembersPage: React.FC = () => {
     email: '',
     nim: '',
     phoneNumber: '',
-    programStudi: 'Pendidikan Agama Islam',
+    programStudi: DEFAULT_PRODI,
     angkatan: '2024',
     role: 'member' as UserRole
   });
@@ -291,13 +292,15 @@ export const AdminMembersPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Program Studi</label>
-                <input
-                  type="text"
-                  required
+                <select
                   value={newMember.programStudi}
                   onChange={(e) => setNewMember({ ...newMember, programStudi: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                >
+                  {PRODI_LIST.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -396,12 +399,18 @@ export const AdminMembersPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Program Studi</label>
-                <input
-                  type="text"
+                <select
                   value={editingUser.programStudi}
                   onChange={(e) => setEditingUser({ ...editingUser, programStudi: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                />
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
+                >
+                  {!PRODI_LIST.includes(editingUser.programStudi) && (
+                    <option value={editingUser.programStudi}>{editingUser.programStudi}</option>
+                  )}
+                  {PRODI_LIST.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-2 pt-2">

@@ -27,6 +27,7 @@ import {
 import { storage } from '@/services/firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { formatDateTime } from '@/utils/formatters';
+import { PRODI_LIST, DEFAULT_PRODI } from '@/constants/prodi';
 
 export const ProfilePage: React.FC = () => {
   const { currentUser, logout, updateUserProfile, isAdmin } = useAppStore();
@@ -43,6 +44,7 @@ export const ProfilePage: React.FC = () => {
   // Edit fields
   const [phoneInput, setPhoneInput] = useState(currentUser?.phoneNumber || '');
   const [photoInput, setPhotoInput] = useState(currentUser?.photoURL || '');
+  const [prodiInput, setProdiInput] = useState(currentUser?.programStudi || DEFAULT_PRODI);
 
   // Notifications toggles
   const [notifState, setNotifState] = useState({
@@ -107,7 +109,8 @@ export const ProfilePage: React.FC = () => {
     if (!currentUser) return;
     await updateUserProfile(currentUser.uid, {
       phoneNumber: phoneInput,
-      photoURL: photoInput
+      photoURL: photoInput,
+      programStudi: prodiInput
     });
     setShowEditModal(false);
     alert('Profil berhasil diperbarui!');
@@ -317,13 +320,29 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-500 mb-1">NIM & Program Studi</label>
+                <label className="block font-semibold text-slate-500 mb-1">NIM (Terkunci)</label>
                 <input
                   type="text"
                   disabled
-                  value={`${currentUser.nim} • ${currentUser.programStudi}`}
-                  className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-700"
+                  value={currentUser.nim}
+                  className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-700"
                 />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Program Studi</label>
+                <select
+                  value={prodiInput}
+                  onChange={(e) => setProdiInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                >
+                  {!PRODI_LIST.includes(prodiInput) && (
+                    <option value={prodiInput}>{prodiInput}</option>
+                  )}
+                  {PRODI_LIST.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

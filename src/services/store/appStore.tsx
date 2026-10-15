@@ -34,6 +34,7 @@ import {
   deleteDoc,
   onSnapshot
 } from 'firebase/firestore';
+import { getJuzForAyah } from '@/utils/quranJuz';
 
 interface AppStoreContextType {
   // Auth & User
@@ -393,14 +394,31 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
   const memberSubmissions = submissions.filter((s) => s.memberId === currentUid);
   const memberDonations = donations.filter((d) => d.memberId === currentUid);
   const memberAttendanceRecords = attendanceRecords.filter((r) => r.memberId === currentUid);
-  const progress = currentUid && progressMap[currentUid] ? progressMap[currentUid] : {
+
+  // Dynamic calculation of hafalan progress specific to current user's approved submissions
+  const acceptedSubs = memberSubmissions.filter((s) => s.status === 'diterima');
+  const dynamicAyahs = acceptedSubs.reduce(
+    (acc, s) => acc + (Math.abs(s.endAyah - s.startAyah) + 1),
+    0
+  );
+  const dynamicJuzNumbers = new Set(
+    acceptedSubs.map((s) => getJuzForAyah(s.surahNumber, s.startAyah))
+  );
+
+  const rawUserProgress = currentUid ? progressMap[currentUid] : null;
+
+  const progress: MemorizationProgress = {
     memberId: currentUid || 'guest',
-    totalAyahMemorized: 0,
-    totalJuzMemorized: 0,
-    targetDailyJuz: 1,
-    targetWeeklyAyah: 20,
-    verifiedSurahs: [],
-    updatedAt: new Date().toISOString()
+    totalAyahMemorized: acceptedSubs.length > 0
+      ? dynamicAyahs
+      : (rawUserProgress?.totalAyahMemorized || 0),
+    totalJuzMemorized: acceptedSubs.length > 0
+      ? dynamicJuzNumbers.size
+      : (rawUserProgress?.totalJuzMemorized || 0),
+    targetDailyJuz: rawUserProgress?.targetDailyJuz || 5,
+    targetWeeklyAyah: rawUserProgress?.targetWeeklyAyah || 30,
+    verifiedSurahs: rawUserProgress?.verifiedSurahs || [],
+    updatedAt: rawUserProgress?.updatedAt || new Date().toISOString()
   };
 
   // Auth actions

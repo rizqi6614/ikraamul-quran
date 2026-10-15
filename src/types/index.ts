@@ -174,7 +174,7 @@ export interface Donation {
   programTitle: string;
   category: string;
   amount: number;
-  paymentMethod: 'qris' | 'transfer_bca' | 'transfer_mandiri' | 'transfer_bsi' | 'cash';
+  paymentMethod: 'gopay' | 'qris' | 'transfer_bca' | 'transfer_mandiri' | 'transfer_bsi' | 'cash' | string;
   paymentReference?: string;
   proofURL?: string;
   notes?: string;

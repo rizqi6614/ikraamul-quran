@@ -21,7 +21,7 @@ export const INITIAL_USERS: UserProfile[] = [
     email: 'rizqi@uninus.ac.id',
     phoneNumber: '081234567890',
     nim: '221011400234',
-    programStudi: 'Pendidikan Agama Islam',
+    programStudi: 'AI',
     angkatan: '2022',
     photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
     role: 'member',
@@ -186,7 +186,7 @@ export const INITIAL_SUBMISSIONS: MemorizationSubmission[] = [
 export const INITIAL_PROGRESS: Record<string, MemorizationProgress> = {
   'user-rizqi-01': {
     memberId: 'user-rizqi-01',
-    totalAyahMemorized: 185,
+    totalAyahMemorized: 23,
     totalJuzMemorized: 2,
     targetDailyJuz: 5,
     targetWeeklyAyah: 50,

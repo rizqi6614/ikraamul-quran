@@ -12,7 +12,10 @@ import {
   Upload,
   Receipt,
   FileText,
-  X
+  X,
+  Copy,
+  Check,
+  Smartphone
 } from 'lucide-react';
 import { formatRupiah, formatDateTime, formatShortDate } from '@/utils/formatters';
 import { DonationStatus } from '@/types';
@@ -30,6 +33,7 @@ export const InfaqPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'infaq' | 'shadaqah'>('infaq');
   const [showDonateModal, setShowDonateModal] = useState<boolean>(false);
+  const [copiedGoPay, setCopiedGoPay] = useState<boolean>(false);
 
   // Form states
   const [selectedProgramId, setSelectedProgramId] = useState<string>(
@@ -38,11 +42,15 @@ export const InfaqPage: React.FC = () => {
   const [amount, setAmount] = useState<number>(50000);
   const [customAmount, setCustomAmount] = useState<string>('50000');
   const [categoryName, setCategoryName] = useState<string>('Infaq - Siswa');
-  const [paymentMethod, setPaymentMethod] = useState<'qris' | 'transfer_bsi' | 'transfer_bca'>(
-    'qris'
-  );
+  const [paymentMethod, setPaymentMethod] = useState<'gopay' | 'qris' | 'transfer_bsi'>('gopay');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const handleCopyGoPay = () => {
+    navigator.clipboard.writeText('082262855600');
+    setCopiedGoPay(true);
+    setTimeout(() => setCopiedGoPay(false), 2500);
+  };
   const [successNotice, setSuccessNotice] = useState<boolean>(false);
 
   const totalCollectedAll = donationPrograms.reduce((acc, p) => acc + p.collectedAmount, 0);
@@ -218,6 +226,102 @@ export const InfaqPage: React.FC = () => {
               <HeartHandshake className="w-4 h-4" />
               <span>Infaq Sekarang</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Informasi Pembayaran Resmi (GOPAY & Rekening) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h3 className="font-extrabold text-sm text-slate-900">
+                Informasi Rekening & Saluran Pembayaran Infak Resmi
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Saluran resmi penerimaan infaq & shadaqah Ikraamul Qur’an UNINUS
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">
+            Terverifikasi Pengurus
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {/* GO-PAY Highlight Card */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-50 via-emerald-50 to-emerald-100/70 border-2 border-emerald-300 relative overflow-hidden flex flex-col justify-between shadow-2xs">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-xs text-emerald-950 uppercase tracking-wider">
+                      GO-PAY
+                    </span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-700 text-white">
+                      Utama
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 font-medium">a.n. <strong className="font-bold text-slate-900">Neneng</strong></p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-emerald-200/80 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-emerald-700 font-semibold block">Nomor GO-PAY:</span>
+                <span className="text-base sm:text-lg font-black text-emerald-950 tracking-wider">
+                  082262855600
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyGoPay}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                {copiedGoPay ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedGoPay ? 'Tersalin!' : 'Salin Nomor'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Bank BSI Alternative Card */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
+                  <Building className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="font-bold text-xs text-slate-900">Bank Syariah Indonesia (BSI)</span>
+                  <p className="text-[11px] text-slate-500">a.n. Ikraamul Quran UNINUS</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-slate-200/80 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-slate-500 block">Nomor Rekening BSI:</span>
+                <span className="text-sm font-extrabold text-slate-800 tracking-wide font-mono">
+                  7123-4567-89
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText('7123456789');
+                  alert('Nomor rekening BSI berhasil disalin!');
+                }}
+                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Salin</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -443,10 +547,56 @@ export const InfaqPage: React.FC = () => {
               {/* Payment Method */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Metode Pembayaran
+                  Pilih Saluran Pembayaran
                 </label>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-emerald-300 bg-emerald-50/50 cursor-pointer">
+                  {/* Primary GO-PAY Option */}
+                  <label
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                      paymentMethod === 'gopay'
+                        ? 'border-emerald-500 bg-emerald-50/80 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="gopay"
+                      checked={paymentMethod === 'gopay'}
+                      onChange={() => setPaymentMethod('gopay')}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-xs text-slate-900">GO-PAY: 082262855600</span>
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-700 text-white uppercase">
+                          Utama
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-emerald-800 font-semibold mt-0.5">
+                        a.n. <strong>Neneng</strong> (Bebas Biaya Admin)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyGoPay();
+                      }}
+                      className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                    >
+                      {copiedGoPay ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedGoPay ? 'Tersalin' : 'Salin'}</span>
+                    </button>
+                  </label>
+
+                  <label
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                      paymentMethod === 'qris'
+                        ? 'border-emerald-500 bg-emerald-50/80 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="paymentMethod"
@@ -459,10 +609,16 @@ export const InfaqPage: React.FC = () => {
                       <p className="font-bold text-xs text-slate-900">QRIS (Gopay / OVO / Dana / BCA)</p>
                       <p className="text-[10px] text-slate-500">Scan instan bebas biaya admin</p>
                     </div>
-                    <QrCode className="w-5 h-5 text-emerald-700" />
+                    <QrCode className="w-5 h-5 text-emerald-700 shrink-0" />
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                  <label
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                      paymentMethod === 'transfer_bsi'
+                        ? 'border-emerald-500 bg-emerald-50/80 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="paymentMethod"
@@ -475,7 +631,7 @@ export const InfaqPage: React.FC = () => {
                       <p className="font-bold text-xs text-slate-900">Bank Syariah Indonesia (BSI)</p>
                       <p className="text-[10px] text-slate-500">No. Rek: 7123-4567-89 a.n Ikraamul Quran UNINUS</p>
                     </div>
-                    <Building className="w-5 h-5 text-slate-600" />
+                    <Building className="w-5 h-5 text-slate-600 shrink-0" />
                   </label>
                 </div>
               </div>

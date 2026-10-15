@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAppStore } from '@/services/store/appStore';
 import { User, Mail, Phone, Hash, GraduationCap, Calendar, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 
+import { PRODI_LIST, DEFAULT_PRODI } from '@/constants/prodi';
+
 export const RegisterPage: React.FC = () => {
   const { register } = useAppStore();
   const navigate = useNavigate();
@@ -13,7 +15,7 @@ export const RegisterPage: React.FC = () => {
     phoneNumber: '',
     nim: '',
     role: 'member' as 'member' | 'admin',
-    programStudi: 'Pendidikan Agama Islam',
+    programStudi: DEFAULT_PRODI,
     angkatan: '2024',
     password: '',
     confirmPassword: ''
@@ -24,18 +26,7 @@ export const RegisterPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const prodiList = [
-    'Pendidikan Agama Islam',
-    'Pendidikan Bahasa Arab',
-    'Pendidikan Guru Madrasah Ibtidaiyah',
-    'Teknik Informatika',
-    'Ilmu Komunikasi',
-    'Ilmu Hukum',
-    'Manajemen',
-    'Akuntansi',
-    'Pendidikan Matematika',
-    'Pendidikan Luar Biasa'
-  ];
+  const prodiList = PRODI_LIST;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
