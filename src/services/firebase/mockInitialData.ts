@@ -21,7 +21,7 @@ export const INITIAL_USERS: UserProfile[] = [
     email: 'rizqi@uninus.ac.id',
     phoneNumber: '081234567890',
     nim: '221011400234',
-    programStudi: 'AI',
+    programStudi: 'PAI',
     angkatan: '2022',
     photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
     role: 'member',

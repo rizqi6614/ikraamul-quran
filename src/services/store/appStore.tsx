@@ -18,6 +18,7 @@ import {
   DonationStatus
 } from '@/types';
 import { isFirebaseConfigured, db, auth } from '@/services/firebase/config';
+import { INITIAL_USERS, INITIAL_SUBMISSIONS } from '@/services/firebase/mockInitialData';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -176,17 +177,19 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   // Primary State collections
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(() =>
-    loadStorage(STORAGE_KEYS.USERS, [])
-  );
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
+    const loaded = loadStorage<UserProfile[]>(STORAGE_KEYS.USERS, []);
+    return loaded.length > 0 ? loaded : INITIAL_USERS;
+  });
 
   const [currentUid, setCurrentUid] = useState<string | null>(() =>
     loadStorage(STORAGE_KEYS.CURRENT_USER_ID, null)
   );
 
-  const [submissions, setSubmissions] = useState<MemorizationSubmission[]>(() =>
-    loadStorage(STORAGE_KEYS.SUBMISSIONS, [])
-  );
+  const [submissions, setSubmissions] = useState<MemorizationSubmission[]>(() => {
+    const loaded = loadStorage<MemorizationSubmission[]>(STORAGE_KEYS.SUBMISSIONS, []);
+    return loaded.length > 0 ? loaded : INITIAL_SUBMISSIONS;
+  });
 
   const [progressMap, setProgressMap] = useState<Record<string, MemorizationProgress>>(() =>
     loadStorage(STORAGE_KEYS.PROGRESS, {})
@@ -272,8 +275,20 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (!snap.empty) {
           const sList: MemorizationSubmission[] = [];
           snap.forEach((d) => sList.push(d.data() as MemorizationSubmission));
-          sList.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-          setSubmissions(sList);
+          setSubmissions((prev) => {
+            const map = new Map<string, MemorizationSubmission>();
+            // Add all Firestore synced records
+            sList.forEach((s) => map.set(s.id, s));
+            // Keep any local records not yet returned by Firestore
+            prev.forEach((p) => {
+              if (!map.has(p.id)) {
+                map.set(p.id, p);
+              }
+            });
+            return Array.from(map.values()).sort(
+              (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+            );
+          });
         }
       },
       (err) => console.warn('Firestore submissions realtime listener note:', err.message)
@@ -642,22 +657,30 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
   const submitMemorization = async (
     data: Omit<MemorizationSubmission, 'id' | 'status' | 'submittedAt' | 'memberName' | 'memberNim'>
   ) => {
-    if (!currentUser) return;
+    const memberName = currentUser?.fullName || 'Santri UNINUS';
+    const memberNim = currentUser?.nim || '221011400234';
+    const memberId = currentUser?.uid || data.memberId || `guest-${Date.now()}`;
+
     const newSub: MemorizationSubmission = {
       ...data,
       id: `sub-${Date.now()}`,
-      memberName: currentUser.fullName,
-      memberNim: currentUser.nim,
+      memberId,
+      memberName,
+      memberNim,
       status: 'menunggu',
       submittedAt: new Date().toISOString()
     };
     
-    setSubmissions((prev) => [newSub, ...prev]);
+    setSubmissions((prev) => [newSub, ...prev.filter((s) => s.id !== newSub.id)]);
 
     // Save directly to Firestore collection 'memorizationSubmissions'
     if (db) {
       try {
-        await setDoc(doc(db, 'memorizationSubmissions', newSub.id), newSub);
+        // Strip undefined fields so Firestore setDoc never throws an error
+        const cleanSub = Object.fromEntries(
+          Object.entries(newSub).filter(([_, v]) => v !== undefined)
+        );
+        await setDoc(doc(db, 'memorizationSubmissions', newSub.id), cleanSub);
         console.log('Memorization submission saved to Firestore:', newSub.id);
       } catch (e) {
         console.warn('Firestore submission save error:', e);
@@ -680,7 +703,7 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
       fluencyScore: scores.fluency,
       tajwidScore: scores.tajwid,
       makhrajScore: scores.makhraj,
-      feedback,
+      feedback: feedback || '',
       reviewedAt,
       reviewedBy: currentUser?.uid || 'admin'
     };
@@ -692,7 +715,10 @@ export const AppStoreProvider: React.FC<{ children: ReactNode }> = ({ children }
     // Save review update to Firestore
     if (db) {
       try {
-        await updateDoc(doc(db, 'memorizationSubmissions', submissionId), updatePayload);
+        const cleanPayload = Object.fromEntries(
+          Object.entries(updatePayload).filter(([_, v]) => v !== undefined)
+        );
+        await updateDoc(doc(db, 'memorizationSubmissions', submissionId), cleanPayload);
       } catch (e) {
         console.warn('Firestore review submission error:', e);
       }

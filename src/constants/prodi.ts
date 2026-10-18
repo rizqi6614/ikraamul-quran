@@ -12,7 +12,7 @@ export const PRODI_LIST: string[] = [
   'Bahasa Inggris',
   'PLB',
   'Pendidikan Masyarakat',
-  'AI',
+  'PAI',
   'Perbankan Syariah',
   'Komunikasi dan Penyiaran Islam',
   'Manajemen',
